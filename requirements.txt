@@ -1,0 +1,7 @@
+streamlit
+pandas
+chromadb-client
+sentence-transformers
+google-generativeai
+langchain-core
+torch
