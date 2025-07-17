@@ -139,7 +139,7 @@ from langchain_core.prompts import ChatPromptTemplate
 # --- Cấu hình ---
 CSV_FILE = 'hahaha_output.csv'
 FAISS_INDEX_PATH = "faiss_index" # Thư mục để lưu chỉ mục FAISS
-EMBEDDER_MODEL = 'BAAI/bge-m3'
+EMBEDDER_MODEL = 'intfloat/multilingual-e5-base'
 GENERATIVE_MODEL = 'gemini-2.0-flash'
 
 # --- 1. TỐI ƯU HIỆU NĂNG VỚI CACHING ---
