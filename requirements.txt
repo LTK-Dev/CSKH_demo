@@ -1,6 +1,8 @@
 streamlit
 pandas
 chromadb
+hnswlib
+numpy
 sentence-transformers
 google-generativeai
 langchain-core
