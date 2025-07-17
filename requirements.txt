@@ -1,10 +1,8 @@
 streamlit
 pandas
-chromadb
-hnswlib
-pysqlite3-binary
-numpy
+faiss-cpu
 sentence-transformers
 google-generativeai
 langchain-core
+langchain-community
 torch
