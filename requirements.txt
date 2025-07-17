@@ -2,6 +2,7 @@ streamlit
 pandas
 chromadb
 hnswlib
+pysqlite3-binary
 numpy
 sentence-transformers
 google-generativeai
