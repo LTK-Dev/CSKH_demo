@@ -1,6 +1,6 @@
 streamlit
 pandas
-chromadb==0.4.24
+chromadb
 sentence-transformers
 google-generativeai
 langchain-core

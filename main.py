@@ -6,6 +6,7 @@ import google.generativeai as genai
 from langchain_core.prompts import ChatPromptTemplate
 from typing import List
 import os
+from chromadb.config import Settings
 
 # --- 1. IMPORT VÀ GỌI HÀM SETUP ---
 from setup_database import initialize_database, DB_PATH # Import hàm và biến đường dẫn
@@ -40,7 +41,14 @@ def get_embedder():
 @st.cache_resource
 def get_retriever():
     print("INFO: Đang kết nối tới ChromaDB...")
-    client = chromadb.PersistentClient(path=DB_PATH)
+    # Sửa dòng client = chromadb.PersistentClient(path=DB_PATH) thành:
+    client = chromadb.PersistentClient(
+        path=DB_PATH,
+        settings=Settings(
+            allow_reset=True,
+            anonymized_telemetry=False
+        )
+    )
     return client.get_collection(name=COLLECTION_NAME)
 
 @st.cache_resource

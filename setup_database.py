@@ -3,6 +3,7 @@ import pandas as pd
 import chromadb
 from sentence_transformers import SentenceTransformer
 import streamlit as st # Thêm streamlit để hiển thị thông báo
+from chromadb.config import Settings
 
 # --- Cấu hình ---
 CSV_FILE = 'hahaha_output.csv'
@@ -46,7 +47,13 @@ def initialize_database():
 
         # Khởi tạo và lưu vào ChromaDB
         print(f"INFO: Đang lưu dữ liệu vào ChromaDB tại: {DB_PATH}...")
-        client = chromadb.PersistentClient(path=DB_PATH)
+        client = chromadb.PersistentClient(
+            path=DB_PATH,
+            settings=Settings(
+                allow_reset=True,
+                anonymized_telemetry=False
+            )
+        )
         collection = client.get_or_create_collection(name=COLLECTION_NAME)
         
         collection.add(
