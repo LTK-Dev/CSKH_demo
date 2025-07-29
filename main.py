@@ -15,7 +15,7 @@ CSV_FILE = 'EKS.csv'
 FAISS_INDEX_PATH = "faiss_index_eks" # <<< THAY ĐỔI: Thư mục lưu index riêng cho EKS
 EMBEDDER_MODEL = 'intfloat/multilingual-e5-base'
 # <<< THAY ĐỔI: Bạn có thể chọn model phù hợp, ví dụ 'gemini-1.5-flash'
-GENERATIVE_MODEL = 'gemini-1.5-flash'
+GENERATIVE_MODEL = 'gemini-2.0-flash'
 
 # --- 1. TỐI ƯU HIỆU NĂNG VỚI CACHING ---
 @st.cache_resource
