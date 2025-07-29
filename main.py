@@ -1,130 +1,3 @@
-# # app.py
-# import streamlit as st
-# import chromadb
-# from sentence_transformers import SentenceTransformer
-# import google.generativeai as genai
-# from langchain_core.prompts import ChatPromptTemplate
-# from typing import List
-# import os
-# from chromadb.config import Settings
-
-# # --- 1. IMPORT VÀ GỌI HÀM SETUP ---
-# from setup_database import initialize_database, DB_PATH # Import hàm và biến đường dẫn
-
-# # Kiểm tra và khởi tạo DB nếu cần
-# if not os.path.exists(DB_PATH):
-#     initialize_database()
-#     st.rerun() # Tải lại ứng dụng sau khi DB được tạo để đảm bảo mọi thứ được load đúng
-
-
-# # --- 2. CẤU HÌNH API KEY AN TOÀN ---
-# try:
-#     GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-#     genai.configure(api_key=GEMINI_API_KEY)
-# except KeyError:
-#     st.error("Lỗi: Vui lòng thiết lập `GEMINI_API_KEY` trong phần Secrets của Streamlit.")
-#     st.stop()
-
-
-# # --- PHẦN CÒN LẠI CỦA APP.PY GIỮ NGUYÊN ---
-
-# # --- 3. TỐI ƯU HIỆU NĂNG VỚI CACHING ---
-# COLLECTION_NAME = "docilee_data"
-# EMBEDDER_MODEL = 'BAAI/bge-m3'
-# GENERATIVE_MODEL = 'gemini-2.0-flash'
-
-# @st.cache_resource
-# def get_embedder():
-#     print("INFO: Đang tải mô hình embedding...")
-#     return SentenceTransformer(EMBEDDER_MODEL)
-
-# @st.cache_resource
-# def get_retriever():
-#     print("INFO: Đang kết nối tới ChromaDB...")
-#     # Sửa dòng client = chromadb.PersistentClient(path=DB_PATH) thành:
-#     client = chromadb.PersistentClient(
-#         path=DB_PATH,
-#         settings=Settings(
-#             allow_reset=True,
-#             anonymized_telemetry=False
-#         )
-#     )
-#     return client.get_collection(name=COLLECTION_NAME)
-
-# @st.cache_resource
-# def get_generative_model():
-#     print("INFO: Đang khởi tạo mô hình Gemini...")
-#     return genai.GenerativeModel(GENERATIVE_MODEL)
-
-# embedder = get_embedder()
-# retriever = get_retriever()
-# model = get_generative_model()
-
-# # --- 4. LOGIC XỬ LÝ CHÍNH ---
-# def get_relevant_documents(question: str, n_results: int = 3) -> List[str]:
-#     query_embedding = embedder.encode([question], normalize_embeddings=True)
-#     results = retriever.query(query_embeddings=query_embedding.tolist(), n_results=n_results)
-#     return results['documents'][0] if results.get('documents') else []
-
-# def generate_response_stream(question: str, context: List[str]):
-#     prompt_template = ChatPromptTemplate.from_template(
-#         """
-#         Bạn là trợ lý ảo của thương hiệu Docilee, chuyên về sản phẩm cho mẹ và bé. Trả lời câu hỏi của khách hàng một cách thân thiện, chuyên nghiệp và chính xác dựa trên thông tin sau.
-
-#         **Thông tin tham khảo**:
-#         {context}
-
-#         ---
-#         **Câu hỏi của khách hàng**:
-#         {question}
-
-#         ---
-#         **Hướng dẫn trả lời**:
-#         - Luôn trả lời bằng tiếng Việt, giọng điệu gần gũi như một chuyên gia tư vấn.
-#         - Quan trọng: Nếu thông tin tham khảo có câu hỏi nào tương ứng với câu hỏi của khách hàng, hãy trả lời y hệt phần Trả lời của câu hỏi đó.
-#         - Nếu câu hỏi trong phần Thông tin tham khảo không hoàn toàn giống về mặt ngữ nghĩa với khách hàng thì hãy trả lời theo đúng kiến thức mà bạn có.
-#         - Nếu thông tin không đủ hoặc không trả lời được chính xác câu hỏi, hãy trả lời một cách tổng quát dựa trên kiến thức chung về sản phẩm Docilee (tã, bỉm, an toàn cho da bé,...) và thừa nhận rằng bạn không có thông tin chi tiết.
-#         - Giữ câu trả lời súc tích, đi thẳng vào vấn đề.
-
-#         Nếu không tuân thủ đúng hướng dẫn, bạn sẽ bị phạt.
-#         """
-#     )
-    
-#     formatted_prompt = prompt_template.format(context="\n\n".join(context), question=question)
-#     print("--- PROMPT ĐÃ GỬI TỚI GEMINI ---")
-#     print(formatted_prompt)
-#     print("---------------------------------")
-    
-#     response_stream = model.generate_content(formatted_prompt, stream=True)
-#     for chunk in response_stream:
-#         yield chunk.text
-
-# # --- 5. GIAO DIỆN NGƯỜI DÙNG ---
-# st.set_page_config(page_title="Docilee Chatbot", page_icon="👶")
-# st.title("💬 Docilee AI Chatbot")
-# st.caption("Trợ lý ảo thông minh của Docilee luôn sẵn sàng hỗ trợ bạn!")
-
-# if "messages" not in st.session_state:
-#     st.session_state.messages = [{"role": "assistant", "content": "Chào bạn, mình là trợ lý ảo của Docilee. Bạn cần tư vấn về sản phẩm nào ạ?"}]
-
-# for msg in st.session_state.messages:
-#     with st.chat_message(msg["role"]):
-#         st.markdown(msg["content"])
-
-# if prompt := st.chat_input("Nhập câu hỏi của bạn về sản phẩm Docilee..."):
-#     st.session_state.messages.append({"role": "user", "content": prompt})
-#     with st.chat_message("user"):
-#         st.markdown(prompt)
-
-#     with st.chat_message("assistant"):
-#         with st.spinner("Docilee đang suy nghĩ..."):
-#             context = get_relevant_documents(prompt)
-#             response_generator = generate_response_stream(prompt, context)
-#             full_response = st.write_stream(response_generator)
-
-#     st.session_state.messages.append({"role": "assistant", "content": full_response})
-
-# app.py (Phiên bản cuối cùng, hoàn chỉnh sử dụng FAISS)
 import streamlit as st
 import pandas as pd
 import os
@@ -137,18 +10,18 @@ from langchain_community.embeddings import SentenceTransformerEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 
 # --- Cấu hình ---
-CSV_FILE = 'hahaha_output.csv'
-FAISS_INDEX_PATH = "faiss_index" # Thư mục để lưu chỉ mục FAISS
+# <<< THAY ĐỔI: Trỏ đến file dữ liệu sản phẩm EKS
+CSV_FILE = 'EKS.csv'
+FAISS_INDEX_PATH = "faiss_index_eks" # <<< THAY ĐỔI: Thư mục lưu index riêng cho EKS
 EMBEDDER_MODEL = 'intfloat/multilingual-e5-base'
-GENERATIVE_MODEL = 'gemini-2.0-flash'
+# <<< THAY ĐỔI: Bạn có thể chọn model phù hợp, ví dụ 'gemini-1.5-flash'
+GENERATIVE_MODEL = 'gemini-1.5-flash'
 
 # --- 1. TỐI ƯU HIỆU NĂNG VỚI CACHING ---
 @st.cache_resource
 def get_embedder():
     """Tải và cache mô hình embedding."""
     print("INFO: Đang tải mô hình embedding...")
-    # Dùng wrapper của LangChain để tương thích tốt hơn
-    # 'cpu' để đảm bảo tương thích trên môi trường deploy
     return SentenceTransformerEmbeddings(
         model_name=EMBEDDER_MODEL,
         model_kwargs={'device': 'cpu'}
@@ -157,10 +30,9 @@ def get_embedder():
 @st.cache_resource
 def load_or_create_faiss_index(_embedder):
     """
-    Tải chỉ mục FAISS nếu đã tồn tại, nếu không thì tạo mới từ CSV.
-    Hàm này sẽ chạy một lần khi app khởi động.
+    Tải chỉ mục FAISS nếu đã tồn tại, nếu không thì tạo mới từ CSV
+    sử dụng chiến thuật "Field Chunking".
     """
-    # 'allow_dangerous_deserialization=True' là cần thiết cho LangChain phiên bản mới
     if os.path.exists(FAISS_INDEX_PATH):
         print(f"INFO: Đang tải chỉ mục FAISS từ '{FAISS_INDEX_PATH}'...")
         return FAISS.load_local(FAISS_INDEX_PATH, _embedder, allow_dangerous_deserialization=True)
@@ -170,42 +42,52 @@ def load_or_create_faiss_index(_embedder):
 
     try:
         df = pd.read_csv(CSV_FILE, encoding='utf-8')
-        # Tạo nội dung cho các documents
-        documents = [
-            f"Câu hỏi: {row['Câu hỏi']}\nTrả lời: {row['Trả lời']}"
-            for _, row in df.iterrows() if pd.notna(row['Câu hỏi']) or pd.notna(row['Trả lời'])
+        df.columns = [col.strip() for col in df.columns] # Làm sạch tên cột
+
+        # <<< THAY ĐỔI LỚN: Áp dụng chiến thuật "Field Chunking"
+        documents = []
+        # Các cột chứa thông tin quan trọng cần chunk
+        fields_to_chunk = [
+            "CÔNG DỤNG", "THÀNH PHẦN", "CHỈ ĐỊNH",
+            "CHỐNG CHỈ ĐỊNH", "CÁCH DÙNG", "BẢO QUẢN", "LƯU Ý KHI SỬ DỤNG"
         ]
+
+        for _, row in df.iterrows():
+            product_name = row.get("SẢN PHẨM", "Không rõ tên")
+            for field in fields_to_chunk:
+                # Chỉ tạo document nếu trường đó có dữ liệu
+                if field in row and pd.notna(row[field]):
+                    chunk_content = f"Sản phẩm: {product_name}\nThông tin về '{field}': {row[field]}"
+                    documents.append(chunk_content)
+
         if not documents:
-            st.error("Lỗi: Không tìm thấy dữ liệu hợp lệ trong file CSV.")
+            st.error("Lỗi: Không thể tạo được các 'chunks' văn bản từ file CSV. Vui lòng kiểm tra lại cấu trúc file và tên các cột.")
             st.stop()
         
-        # Tạo chỉ mục vector từ các document và mô hình embedding
+        print(f"INFO: Đã tạo được {len(documents)} chunks từ file CSV.")
         print("INFO: Đang tạo embeddings và chỉ mục FAISS...")
         vectorstore = FAISS.from_texts(texts=documents, embedding=_embedder)
         
-        # Lưu chỉ mục ra file để lần sau tải lại cho nhanh
         vectorstore.save_local(FAISS_INDEX_PATH)
-        print(" INFO: Tạo và lưu chỉ mục FAISS thành công.")
-        st.success("Tạo chỉ mục thành công! Chatbot đã sẵn sàng.")
-        st.rerun() # Tải lại app sau khi tạo xong
+        print(f"INFO: Tạo và lưu chỉ mục FAISS vào '{FAISS_INDEX_PATH}' thành công.")
+        st.success("Tạo chỉ mục sản phẩm thành công! Chatbot đã sẵn sàng.")
+        # Không cần rerun vì cache resource sẽ xử lý việc load lại
         return vectorstore
 
     except FileNotFoundError:
-        st.error(f"Lỗi: Không tìm thấy file '{CSV_FILE}'. Vui lòng tải file này lên GitHub.")
+        st.error(f"Lỗi: Không tìm thấy file '{CSV_FILE}'. Vui lòng đảm bảo file tồn tại.")
         st.stop()
     except Exception as e:
         st.error(f"Lỗi nghiêm trọng khi tạo chỉ mục FAISS: {e}")
         st.stop()
 
-
 # --- 2. CẤU HÌNH API KEY AN TOÀN ---
 try:
     # Lấy API key từ Streamlit Secrets khi deploy
     genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-except KeyError:
+except Exception:
     st.error("Lỗi: Vui lòng thiết lập `GEMINI_API_KEY` trong phần Secrets của Streamlit.")
     st.stop()
-
 
 # --- Tải tài nguyên và khởi tạo ---
 embedder = get_embedder()
@@ -213,34 +95,32 @@ vector_store = load_or_create_faiss_index(embedder)
 model = genai.GenerativeModel(GENERATIVE_MODEL)
 
 # --- 3. LOGIC XỬ LÝ CHÍNH ---
-def get_relevant_documents(question: str, n_results: int = 3) -> List[str]:
-    """Sử dụng FAISS để truy vấn các tài liệu liên quan."""
-    # similarity_search trả về các đối tượng Document của LangChain
+def get_relevant_documents(question: str, n_results: int = 5) -> List[str]: # <<< THAY ĐỔI: Tăng số lượng context
+    """Sử dụng FAISS để truy vấn các chunks tài liệu liên quan."""
     results = vector_store.similarity_search(question, k=n_results)
-    # Trích xuất nội dung text từ các document
     return [doc.page_content for doc in results]
 
 def generate_response_stream(question: str, context: List[str]):
+    # <<< THAY ĐỔI: Cập nhật prompt để phù hợp với EKS và field chunking
     prompt_template = ChatPromptTemplate.from_template(
         """
-        Bạn là trợ lý ảo của thương hiệu Docilee, chuyên về sản phẩm cho mẹ và bé. Trả lời câu hỏi của khách hàng một cách thân thiện, chuyên nghiệp và chính xác dựa trên thông tin sau.
+        Bạn là trợ lý ảo chuyên nghiệp của nhãn hàng mỹ phẩm Ekseption (EKS). Nhiệm vụ của bạn là tư vấn chính xác và thân thiện cho khách hàng dựa trên thông tin sản phẩm được cung cấp.
 
-        **Thông tin tham khảo**:
-        {context}
-
+        **Thông tin tham khảo từ các sản phẩm (đã được chia nhỏ theo từng trường thông tin)**:
         ---
+        {context}
+        ---
+
         **Câu hỏi của khách hàng**:
         {question}
 
         ---
         **Hướng dẫn trả lời**:
-        - Luôn trả lời bằng tiếng Việt, giọng điệu gần gũi như một chuyên gia tư vấn.
-        - Quan trọng: Nếu thông tin tham khảo có câu hỏi nào tương ứng với câu hỏi của khách hàng, hãy trả lời y hệt phần Trả lời của câu hỏi đó.
-        - Nếu câu hỏi trong phần Thông tin tham khảo không hoàn toàn giống về mặt ngữ nghĩa với khách hàng thì hãy trả lời theo đúng kiến thức mà bạn có.
-        - Nếu thông tin không đủ hoặc không trả lời được chính xác câu hỏi, hãy trả lời một cách tổng quát dựa trên kiến thức chung về sản phẩm Docilee (tã, bỉm, an toàn cho da bé,...) và thừa nhận rằng bạn không có thông tin chi tiết.
-        - Giữ câu trả lời súc tích, đi thẳng vào vấn đề.
-
-        Nếu không tuân thủ đúng hướng dẫn, bạn sẽ bị phạt.
+        1.  **Xưng hô**: Luôn xưng là "EKS" và gọi khách hàng là "bạn". Giọng điệu chuyên gia, tự tin nhưng gần gũi.
+        2.  **Tổng hợp thông tin**: Dựa vào các mảnh thông tin trong phần "Thông tin tham khảo" để tổng hợp câu trả lời đầy đủ nhất. Các mảnh thông tin này có thể đến từ nhiều sản phẩm khác nhau, hãy chọn lọc thông tin đúng với sản phẩm mà khách hàng hỏi.
+        3.  **Trích dẫn sản phẩm**: Khi trả lời, hãy nêu rõ thông tin đó thuộc về sản phẩm nào. Ví dụ: "Đối với sản phẩm [Tên sản phẩm], công dụng của nó là..."
+        4.  **Nếu không chắc chắn**: Nếu thông tin tham khảo không đủ để trả lời câu hỏi, hãy trả lời rằng: "Cảm ơn câu hỏi của bạn. EKS chưa có thông tin chi tiết về vấn đề này trong dữ liệu. Bạn vui lòng cung cấp thêm chi tiết hoặc liên hệ chuyên gia để được tư vấn sâu hơn nhé." Tuyệt đối không tự bịa đặt thông tin.
+        5.  **Ngôn ngữ**: Sử dụng tiếng Việt, trình bày rõ ràng, dùng markdown (gạch đầu dòng, in đậm) để câu trả lời dễ đọc.
         """
     )
     
@@ -249,37 +129,33 @@ def generate_response_stream(question: str, context: List[str]):
     for chunk in response_stream:
         yield chunk.text
 
-
 # --- 4. GIAO DIỆN NGƯỜI DÙNG ---
-st.set_page_config(page_title="Docilee Chatbot", page_icon="👶")
-st.title("💬 Docilee AI Chatbot")
-st.caption("Trợ lý ảo thông minh của Docilee (Nền tảng: FAISS + Gemini)")
+# <<< THAY ĐỔI: Cập nhật giao diện cho EKS
+st.set_page_config(page_title="EKS Chatbot", page_icon="✨")
+st.title("💬 Chatbot Tư vấn sản phẩm EKS")
+st.caption("Trợ lý ảo thông minh của Ekseption (Nền tảng: Field Chunking + FAISS + Gemini)")
 
-# Khởi tạo lịch sử chat
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role": "assistant", "content": "Chào bạn, mình là trợ lý ảo của Docilee. Bạn cần tư vấn về sản phẩm nào ạ?"}]
+    st.session_state.messages = [{"role": "assistant", "content": "Chào bạn, EKS có thể giúp gì cho bạn hôm nay? Hãy hỏi tôi bất cứ điều gì về sản phẩm nhé!"}]
 
-# Hiển thị các tin nhắn đã có
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# Khung nhập liệu cho người dùng
-if prompt := st.chat_input("Nhập câu hỏi của bạn về sản phẩm Docilee..."):
-    # Thêm và hiển thị tin nhắn của người dùng
+if prompt := st.chat_input("Hỏi về công dụng, thành phần, cách dùng..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Tạo và hiển thị câu trả lời của bot
     with st.chat_message("assistant"):
-        with st.spinner("Docilee đang suy nghĩ..."):
-            # 1. Tìm kiếm thông tin liên quan
+        with st.spinner("EKS đang tìm kiếm câu trả lời..."):
             context = get_relevant_documents(prompt)
             
-            # 2. Tạo và hiển thị câu trả lời theo từng phần (streaming)
+            # (Tùy chọn) In context ra để debug
+            # with st.expander("Xem context được tìm thấy"):
+            #     st.write(context)
+
             response_generator = generate_response_stream(prompt, context)
             full_response = st.write_stream(response_generator)
 
-    # Thêm câu trả lời hoàn chỉnh của bot vào lịch sử
     st.session_state.messages.append({"role": "assistant", "content": full_response})
